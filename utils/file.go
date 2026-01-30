@@ -14,8 +14,24 @@ func GetAbsPath(relPath string) string {
 		logger.Error("Failed to get executable path", "err", err)
 		return ""
 	}
-	dir := filepath.Dir(exe)
-	return filepath.Join(dir, relPath)
+	exeDir := filepath.Dir(exe)
+	
+	// 先尝试在可执行文件所在目录查找
+	absPath := filepath.Join(exeDir, relPath)
+	if _, err := os.Stat(absPath); err == nil {
+		return absPath
+	}
+	
+	// 如果找不到，尝试在当前工作目录查找（适用于 go run 的情况）
+	if cwd, err := os.Getwd(); err == nil {
+		cwdPath := filepath.Join(cwd, relPath)
+		if _, err := os.Stat(cwdPath); err == nil {
+			return cwdPath
+		}
+	}
+	
+	// 如果都找不到，返回基于可执行文件目录的路径（保持原有行为）
+	return absPath
 }
 
 func GetTailStartOffset(filePath string, lines int) (int64, error) {

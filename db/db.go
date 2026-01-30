@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
@@ -172,7 +173,28 @@ func InitTable() {
 		logger.Info("✅ create direction success")
 	}
 	
-	DB, err = sql.Open(conf.BaseConfInfo.DBType, conf.BaseConfInfo.DBConf)
+	// 对于 SQLite3 数据库，确保数据库文件路径的目录存在
+	dbConf := conf.BaseConfInfo.DBConf
+	if conf.BaseConfInfo.DBType == "sqlite3" {
+		dbPath := dbConf
+		// 如果是相对路径，转换为绝对路径
+		if !filepath.IsAbs(dbPath) {
+			dbPath = botUtils.GetAbsPath(dbPath)
+		}
+		dbDir := filepath.Dir(dbPath)
+		if _, err := os.Stat(dbDir); os.IsNotExist(err) {
+			// 如果目录不存在，创建它
+			if err := os.MkdirAll(dbDir, 0755); err != nil {
+				logger.Fatal("create database directory fail:", "err", err, "dir", dbDir)
+				return
+			}
+			logger.Info("✅ create database directory success", "dir", dbDir)
+		}
+		// 使用绝对路径打开数据库
+		dbConf = dbPath
+	}
+	
+	DB, err = sql.Open(conf.BaseConfInfo.DBType, dbConf)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}

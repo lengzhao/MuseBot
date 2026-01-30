@@ -502,10 +502,6 @@ func (s *SlackRobot) setPrompt(prompt string) {
 	s.Prompt = prompt
 }
 
-func (s *SlackRobot) getAudio() []byte {
-	return s.VoiceContent
-}
-
 func (s *SlackRobot) getImage() []byte {
 	return s.ImageContent
 }

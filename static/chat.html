@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuseBot 聊天</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 250px;
+            min-width: 250px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .new-session-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .new-session-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .session-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .session-item:hover {
+            background: #e9ecef;
+        }
+
+        .session-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #5568d3;
+        }
+
+        .session-item-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .session-item-time {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .session-item-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .session-delete-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: inherit;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .session-delete-btn:hover {
+            opacity: 1;
+        }
+
+        .session-item.active .session-delete-btn {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.assistant .message-content pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .message.assistant .message-content code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #ffeaea;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        /* Thinking 块样式 */
+        .thinking-block {
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            /* overflow: hidden; */
+            clear: both;
+        }
+
+        .thinking-header {
+            padding: 8px 12px;
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+        }
+
+        .thinking-content {
+            padding: 12px;
+            font-size: 13px;
+            color: #495057;
+            line-height: 1.6;
+            font-style: italic;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        /* 确保 thinking 块后的正文有间距 */
+        .message-content > .thinking-block + * {
+            margin-top: 15px;
+        }
+
+        .thinking-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .thinking-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .thinking-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        .thinking-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- 侧边栏：会话列表 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">会话</div>
+                <button class="new-session-btn" onclick="createNewSession()">+ 新建</button>
+            </div>
+            <div class="session-list" id="sessionList">
+                <!-- 会话列表将在这里动态生成 -->
+            </div>
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="chat-main">
+            <div class="chat-header">
+                🤖 MuseBot 聊天
+            </div>
+            <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-content">
+                    你好！我是 MuseBot，有什么可以帮助你的吗？
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <input type="file" id="fileInput" accept="image/*,video/*,audio/*" style="display: none;">
+            <input type="text" class="chat-input" id="chatInput" placeholder="输入消息..." 
+                   onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button class="send-button" id="sendButton" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const fileInput = document.getElementById('fileInput');
+        const sessionList = document.getElementById('sessionList');
+        let currentFile = null;
+        let currentSessionId = null;
+        let sessions = [];
+
+        // 初始化会话管理
+        function initSessions() {
+            // 确保 sessionList 元素存在
+            if (!sessionList) {
+                console.error('sessionList element not found!');
+                return;
+            }
+            
+            // 从 localStorage 加载会话列表
+            const savedSessions = localStorage.getItem('muse_bot_sessions');
+            if (savedSessions) {
+                try {
+                    sessions = JSON.parse(savedSessions);
+                } catch (e) {
+                    console.error('Failed to parse sessions from localStorage:', e);
+                    sessions = [];
+                }
+            }
+
+            // 如果没有会话，创建一个默认会话
+            if (sessions.length === 0) {
+                createNewSession();
+            } else {
+                // 加载第一个会话
+                switchSession(sessions[0].id);
+            }
+
+            renderSessionList();
+        }
+
+        // 创建新会话
+        function createNewSession() {
+            const sessionId = "session_" + Date.now();
+            const newSession = {
+                id: sessionId,
+                title: "新会话",
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                messages: []
+            };
+
+            sessions.unshift(newSession);
+            saveSessions();
+            switchSession(sessionId);
+            renderSessionList();
+        }
+
+        // 切换会话
+        function switchSession(sessionId) {
+            // 保存当前会话的消息
+            if (currentSessionId) {
+                saveCurrentSessionMessages();
+            }
+
+            // 切换到新会话
+            currentSessionId = sessionId;
+            const session = sessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            // 更新会话标题（如果为空）
+            if (!session.title || session.title === "新会话") {
+                session.title = getSessionTitle(session.messages);
+            }
+
+            // 清空聊天窗口
+            chatMessages.innerHTML = '';
+
+            // 加载会话消息
+            if (session.messages.length === 0) {
+                addMessage("你好！我是 MuseBot，有什么可以帮助你的吗？", false);
+            } else {
+                session.messages.forEach(msg => {
+                    addMessage(msg.content, msg.role === 'user', false);
+                });
+            }
+
+            renderSessionList();
+            scrollToBottom();
+        }
+
+        // 保存当前会话的消息
+        function saveCurrentSessionMessages() {
+            if (!currentSessionId) return;
+
+            const session = sessions.find(s => s.id === currentSessionId);
+            if (!session) return;
+
+            const messages = [];
+            const messageDivs = chatMessages.querySelectorAll('.message');
+            messageDivs.forEach(div => {
+                const contentDiv = div.querySelector('.message-content');
+                if (contentDiv) {
+                    const isUser = div.classList.contains('user');
+                    const content = contentDiv.textContent || contentDiv.innerText;
+                    if (content.trim()) {
+                        messages.push({
+                            role: isUser ? 'user' : 'assistant',
+                            content: content
+                        });
+                    }
+                }
+            });
+
+            session.messages = messages;
+            session.updatedAt = Date.now();
+            session.title = getSessionTitle(messages);
+            saveSessions();
+        }
+
+        // 根据消息生成会话标题
+        function getSessionTitle(messages) {
+            if (messages.length === 0) return "新会话";
+            const firstUserMessage = messages.find(m => m.role === 'user');
+            if (firstUserMessage) {
+                const title = firstUserMessage.content.substring(0, 20);
+                return title.length < firstUserMessage.content.length ? title + '...' : title;
+            }
+            return "新会话";
+        }
+
+        // 删除会话
+        function deleteSession(sessionId, e) {
+            e.stopPropagation(); // 阻止触发切换会话
+            
+            if (sessions.length <= 1) {
+                alert('至少需要保留一个会话');
+                return;
+            }
+
+            if (confirm('确定要删除这个会话吗？')) {
+                sessions = sessions.filter(s => s.id !== sessionId);
+                
+                // 如果删除的是当前会话，切换到第一个会话
+                if (sessionId === currentSessionId) {
+                    if (sessions.length > 0) {
+                        switchSession(sessions[0].id);
+                    } else {
+                        createNewSession();
+                    }
+                } else {
+                    saveSessions();
+                    renderSessionList();
+                }
+            }
+        }
+
+        // 渲染会话列表
+        function renderSessionList() {
+            if (!sessionList) {
+                console.error('sessionList element not found in renderSessionList!');
+                return;
+            }
+            
+            sessionList.innerHTML = '';
+            
+            if (sessions.length === 0) {
+                console.warn('No sessions to render');
+                return;
+            }
+            
+            sessions.forEach(session => {
+                const item = document.createElement('div');
+                item.className = 'session-item' + (session.id === currentSessionId ? ' active' : '');
+                item.onclick = () => switchSession(session.id);
+
+                const title = document.createElement('div');
+                title.className = 'session-item-title';
+                title.textContent = session.title;
+
+                const time = document.createElement('div');
+                time.className = 'session-item-time';
+                time.textContent = formatTime(session.updatedAt);
+
+                const actions = document.createElement('div');
+                actions.className = 'session-item-actions';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'session-delete-btn';
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = (e) => deleteSession(session.id, e);
+
+                actions.appendChild(deleteBtn);
+
+                item.appendChild(title);
+                item.appendChild(time);
+                item.appendChild(actions);
+                sessionList.appendChild(item);
+            });
+        }
+
+        // 格式化时间
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return '刚刚';
+            if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+            if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+        }
+
+        // 保存会话列表到 localStorage
+        function saveSessions() {
+            localStorage.setItem('muse_bot_sessions', JSON.stringify(sessions));
+        }
+
+        // 获取API地址
+        function getApiUrl() {
+            const host = window.location.hostname;
+            const port = window.location.port || '36060';
+            return `http://${host}:${port}/communicate`;
+        }
+
+        // 获取当前会话的 user_id（基于 sessionId）
+        function getUserId() {
+            if (!currentSessionId) {
+                currentSessionId = "session_" + Date.now();
+            }
+            // 使用 sessionId 作为 user_id，确保每个会话有独立的 agent session
+            return currentSessionId;
+        }
+
+        // 添加消息到聊天窗口
+        function addMessage(content, isUser, isStreaming = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isStreaming) {
+                contentDiv.id = 'streaming-message';
+            }
+            
+            // 简单的Markdown渲染
+            contentDiv.innerHTML = formatMessage(content);
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+            
+            return contentDiv;
+        }
+
+        // 简单的Markdown格式化
+        function formatMessage(text) {
+            // 图片链接（先处理，避免被后续处理影响）
+            if (text.startsWith('data:image/')) {
+                return `<img src="${text}" class="image-preview" alt="图片">`;
+            }
+            
+            // 处理 <think> 或 <think> 标签（在转义前处理）
+            // 先提取这些标签的内容，避免被转义
+            const thinkingBlocks = [];
+            let thinkingIndex = 0;
+            let result = '';
+            let lastIndex = 0;
+            
+            // 使用正则表达式匹配完整的标签对
+            // 注意：使用非贪婪匹配，并且要处理流式输出时可能不完整的标签
+            const regex = /<(think|redacted_reasoning)>([\s\S]*?)<\/\1>/gi;
+            let match;
+            
+            // 调试：检查是否有 thinking 标签
+            if (text.includes('<think>') || text.includes('<think>')) {
+                console.log('Found thinking tags in text, attempting to match...');
+                console.log('Text length:', text.length);
+                console.log('Text preview:', text.substring(0, 500));
+            }
+            
+            while ((match = regex.exec(text)) !== null) {
+                console.log('Matched thinking block:', match[0].substring(0, 200) + (match[0].length > 200 ? '...' : ''));
+                // 添加标签前的普通文本
+                if (match.index > lastIndex) {
+                    result += text.substring(lastIndex, match.index);
+                }
+                
+                // 提取 thinking 内容
+                const placeholder = `__THINKING_BLOCK_${thinkingIndex}__`;
+                thinkingBlocks.push({
+                    placeholder: placeholder,
+                    content: match[2] // 标签内的内容（不 trim，保留原始格式）
+                });
+                result += placeholder;
+                thinkingIndex++;
+                
+                lastIndex = regex.lastIndex;
+            }
+            
+            // 添加剩余的文本（包括可能不完整的标签）
+            if (lastIndex < text.length) {
+                result += text.substring(lastIndex);
+            }
+            
+            // 如果没有匹配到任何标签，使用原始文本
+            if (thinkingBlocks.length === 0) {
+                result = text;
+                // 调试：如果没有匹配到标签，但文本中包含 thinking 相关字符串，输出警告
+                if (text.includes('think') || text.includes('redacted')) {
+                    console.warn('Text contains thinking-related strings but no complete tags matched:', text.substring(0, 500));
+                }
+            } else {
+                console.log('Successfully matched', thinkingBlocks.length, 'thinking block(s)');
+            }
+            
+            // 转义HTML（除了已提取的 thinking 块占位符）
+            result = result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // 代码块
+            result = result.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // 行内代码
+            result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
+            
+            // 换行
+            result = result.replace(/\n/g, '<br>');
+            
+            // 恢复 thinking 块，并应用特殊样式
+            // 注意：thinking 块需要转义其内容中的 HTML
+            thinkingBlocks.forEach(block => {
+                // 对 thinking 内容进行 HTML 转义
+                let thinkingContent = block.content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
+                
+                const thinkingHtml = `
+                    <div class="thinking-block">
+                        <div class="thinking-header">💭 思考过程</div>
+                        <div class="thinking-content">${thinkingContent}</div>
+                    </div>
+                `;
+                // 恢复占位符（占位符本身不会被转义，因为它在转义前就被替换了）
+                result = result.replace(block.placeholder, thinkingHtml);
+            });
+            
+            return result;
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message && !currentFile) return;
+
+            // 确保有当前会话
+            if (!currentSessionId) {
+                createNewSession();
+            }
+
+            // 添加用户消息
+            if (message) {
+                addMessage(message, true);
+            }
+            if (currentFile) {
+                const fileMessage = document.createElement('div');
+                fileMessage.className = 'message user';
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                if (currentFile.type.startsWith('image/')) {
+                    contentDiv.innerHTML = `<img src="${URL.createObjectURL(currentFile)}" class="image-preview" alt="图片">`;
+                } else {
+                    contentDiv.textContent = `📎 ${currentFile.name}`;
+                }
+                fileMessage.appendChild(contentDiv);
+                chatMessages.appendChild(fileMessage);
+                scrollToBottom();
+            }
+
+            // 清空输入
+            chatInput.value = '';
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<div class="loading"></div>';
+
+            // 添加助手消息占位符
+            const assistantMessage = addMessage('', false, true);
+            let assistantContent = '';
+
+            try {
+                const formData = new FormData();
+                if (currentFile) {
+                    formData.append('file', currentFile);
+                }
+
+                const url = `${getApiUrl()}?prompt=${encodeURIComponent(message)}&user_id=${encodeURIComponent(getUserId())}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: currentFile ? formData : null,
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    assistantContent += chunk;
+                    
+                    // 在 console 中输出接收到的内容（用于调试）
+                    console.log('Received chunk:', chunk);
+                    console.log('Total content so far:', assistantContent);
+                    
+                    // 实时更新显示内容
+                    assistantMessage.innerHTML = formatMessage(assistantContent);
+                    scrollToBottom();
+                }
+                
+                // 最终格式化一次，确保所有标签都被正确处理
+                console.log('Final content:', assistantContent);
+                assistantMessage.innerHTML = formatMessage(assistantContent);
+
+                // 移除streaming标识
+                assistantMessage.id = '';
+                
+                // 保存会话消息
+                saveCurrentSessionMessages();
+                renderSessionList();
+                
+            } catch (error) {
+                assistantMessage.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+                console.error('Error:', error);
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = '发送';
+                currentFile = null;
+                fileInput.value = '';
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            initSessions();
+        });
+
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            currentFile = e.target.files[0];
+            if (currentFile) {
+                chatInput.placeholder = `已选择文件: ${currentFile.name}`;
+            }
+        });
+
+        // 允许拖拽文件
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                currentFile = file;
+                fileInput.files = e.dataTransfer.files;
+                chatInput.placeholder = `已选择文件: ${file.name}`;
+            }
+        });
+    </script>
+</body>
+</html>

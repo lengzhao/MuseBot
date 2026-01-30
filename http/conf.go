@@ -291,7 +291,6 @@ func updateMCPConf(ctx context.Context, name string, mcpClientConf *mcpParam.MCP
 		}
 	}
 	conf.InsertTools(name)
-	return
 }
 
 func handleSpecialData(updateConfParam *UpdateConfParam) {

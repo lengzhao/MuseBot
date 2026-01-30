@@ -1155,10 +1155,6 @@ func (t *TelegramRobot) setPrompt(prompt string) {
 	t.Prompt = prompt
 }
 
-func (t *TelegramRobot) getAudio() []byte {
-	return t.AudioContent
-}
-
 func (t *TelegramRobot) getImage() []byte {
 	return t.ImageContent
 }

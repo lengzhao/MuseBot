@@ -15,6 +15,7 @@ import (
 	"github.com/yincongcyincong/MuseBot/conf"
 	"github.com/yincongcyincong/MuseBot/logger"
 	"github.com/yincongcyincong/MuseBot/metrics"
+	"github.com/yincongcyincong/MuseBot/utils"
 )
 
 var (
@@ -77,6 +78,10 @@ func (p *HTTPServer) Start() {
 		
 		mux.HandleFunc("/pong", PongHandler)
 		mux.HandleFunc("/dashboard", DashboardHandler)
+		
+		// 静态文件服务 - 提供聊天页面
+		mux.HandleFunc("/chat", serveChatPage)
+		mux.HandleFunc("/", serveChatPage) // 根路径也提供聊天页面
 		
 		mux.HandleFunc("/communicate", Communicate)
 		mux.HandleFunc("/com/wechat", ComWechatComm)
@@ -175,4 +180,108 @@ func WithRequestContext(next http.Handler) http.Handler {
 		
 		metrics.HTTPRequestCount.WithLabelValues(r.URL.Path).Inc()
 	})
+}
+
+// serveChatPage 提供聊天页面
+func serveChatPage(w http.ResponseWriter, r *http.Request) {
+	// 只对根路径和 /chat 路径提供聊天页面
+	if r.URL.Path != "/" && r.URL.Path != "/chat" {
+		http.NotFound(w, r)
+		return
+	}
+	
+	chatHTMLPath := utils.GetAbsPath("static/chat.html")
+	
+	// 检查文件是否存在
+	if _, err := os.Stat(chatHTMLPath); os.IsNotExist(err) {
+		// 如果文件不存在，返回简单的HTML
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MuseBot 聊天</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .chat-container { border: 1px solid #ddd; border-radius: 10px; padding: 20px; }
+        .messages { height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #5568d3; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .user { background: #e3f2fd; text-align: right; }
+        .assistant { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>MuseBot 聊天</h1>
+        <div class="messages" id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="input" placeholder="输入消息..." onkeypress="if(event.key==='Enter') send()">
+            <button onclick="send()">发送</button>
+        </div>
+    </div>
+    <script>
+        const host = window.location.hostname;
+        const port = window.location.port || '36060';
+        const apiUrl = "http://" + host + ":" + port + "/communicate";
+        
+        function addMessage(text, isUser) {
+            const div = document.createElement('div');
+            div.className = 'message ' + (isUser ? 'user' : 'assistant');
+            div.textContent = text;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+        
+        async function send() {
+            const input = document.getElementById('input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addMessage(message, true);
+            input.value = '';
+            
+            const assistantDiv = document.createElement('div');
+            assistantDiv.className = 'message assistant';
+            document.getElementById('messages').appendChild(assistantDiv);
+            
+            // 使用 sessionStorage 保存 user_id，确保同一浏览器会话使用相同的 user_id
+            let userId = sessionStorage.getItem('muse_bot_user_id');
+            if (!userId) {
+                userId = "web_user_" + Date.now();
+                sessionStorage.setItem('muse_bot_user_id', userId);
+            }
+            
+            try {
+                const response = await fetch(apiUrl + "?prompt=" + encodeURIComponent(message) + "&user_id=" + encodeURIComponent(userId), {
+                    method: 'POST'
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let content = '';
+                
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    content += decoder.decode(value, {stream: true});
+                    assistantDiv.textContent = content;
+                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                }
+            } catch (error) {
+                assistantDiv.textContent = '错误: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>`)
+		return
+	}
+	
+	// 读取并返回HTML文件
+	http.ServeFile(w, r, chatHTMLPath)
 }

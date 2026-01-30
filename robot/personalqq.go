@@ -440,10 +440,6 @@ func (q *PersonalQQRobot) setPrompt(prompt string) {
 	q.Prompt = prompt
 }
 
-func (q *PersonalQQRobot) getAudio() []byte {
-	return q.AudioContent
-}
-
 func (q *PersonalQQRobot) getImage() []byte {
 	return q.ImageContent
 }

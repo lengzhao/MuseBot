@@ -577,10 +577,6 @@ func (l *LarkRobot) setPrompt(prompt string) {
 	l.Prompt = prompt
 }
 
-func (l *LarkRobot) getAudio() []byte {
-	return l.AudioContent
-}
-
 func (l *LarkRobot) getImage() []byte {
 	return l.ImageContent
 }

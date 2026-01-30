@@ -87,7 +87,7 @@ func deleteMsgMapData() {
 			if !ok {
 				return true
 			}
-			if time.Now().Sub(msg.StartTime) > 5*time.Minute {
+			if time.Since(msg.StartTime) > 5*time.Minute {
 				logger.Info("msg deleted", "msgId", key)
 				TencentMsgMap.Delete(key)
 			}
@@ -437,10 +437,6 @@ func (w *WechatRobot) getUserName() string {
 
 func (w *WechatRobot) setPrompt(prompt string) {
 	w.Prompt = prompt
-}
-
-func (w *WechatRobot) getAudio() []byte {
-	return w.VoiceContent
 }
 
 func (w *WechatRobot) getImage() []byte {

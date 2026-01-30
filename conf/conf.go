@@ -80,6 +80,7 @@ type BaseConf struct {
 	LLMOptionParam    bool   `json:"llm_option_param"`
 	ImagePath         string `json:"image_path"`
 	IsStreaming       bool   `json:"is_streaming"`
+	CmdAgentEnabled   bool   `json:"cmd_agent_enabled"`
 	
 	CrtFile string `json:"crt_file"`
 	KeyFile string `json:"key_file"`
@@ -439,6 +440,10 @@ func InitConf() {
 	
 	if os.Getenv("IS_STREAMING") != "" {
 		BaseConfInfo.IsStreaming = os.Getenv("IS_STREAMING") == "true"
+	}
+	
+	if os.Getenv("CMD_AGENT_ENABLED") != "" {
+		BaseConfInfo.CmdAgentEnabled = os.Getenv("CMD_AGENT_ENABLED") == "true"
 	}
 	
 	EnvAudioConf()
