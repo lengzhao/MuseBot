@@ -6,7 +6,7 @@ import (
 	"errors"
 	"html/template"
 	"time"
-	
+
 	godeepseek "github.com/cohesion-org/deepseek-go"
 	"github.com/revrost/go-openrouter"
 	"github.com/sashabaranov/go-openai"
@@ -38,58 +38,58 @@ type LLM struct {
 	HTTPMsgChan chan string
 	Content     string
 	Images      [][]byte
-	
+
 	Model string
 	Cs    *param.ContextState
-	
+
 	ChatId           string
 	UserId           string
 	MsgId            string
 	PerMsgLen        int
 	ContentParameter map[string]string
-	
+
 	LLMClient LLMClient
-	
+
 	Ctx context.Context
-	
+
 	DeepseekTools   []godeepseek.Tool
 	VolTools        []*model.Tool
 	OpenAITools     []openai.Tool
 	GeminiTools     []*genai.Tool
 	OpenRouterTools []openrouter.Tool
-	
+
 	WholeContent string // whole answer from llm
 	LoopNum      int
 }
 
 type LLMClient interface {
 	Send(ctx context.Context, l *LLM) error
-	
+
 	GetMessage(role, msg string)
-	
+
 	GetImageMessage(image [][]byte, msg string)
-	
+
 	GetAudioMessage(audio []byte, msg string)
-	
+
 	AppendMessages(client LLMClient)
-	
+
 	SyncSend(ctx context.Context, l *LLM) (string, error)
-	
+
 	GetModel(l *LLM)
 }
 
 func (l *LLM) CallLLM() error {
-	
+
 	totalContent := l.GetContent(l.Content)
 	l.GetMessages(l.UserId, totalContent)
 	l.InsertCharacter(l.Ctx)
 	l.LLMClient.GetModel(l)
-	
+
 	logger.InfoCtx(l.Ctx, "msg receive", "userID", l.UserId, "prompt", totalContent, "type",
 		utils.GetTxtType(db.GetCtxUserInfo(l.Ctx).LLMConfigRaw), "model", l.Model)
-	
+
 	metrics.APIRequestCount.WithLabelValues(l.Model).Inc()
-	
+
 	var err error
 	if conf.BaseConfInfo.IsStreaming {
 		err = l.LLMClient.Send(l.Ctx, l)
@@ -103,19 +103,19 @@ func (l *LLM) CallLLM() error {
 			logger.ErrorCtx(l.Ctx, "Error calling LLM API", "err", err)
 			return err
 		}
-		
+
 		l.MessageChan <- &param.MsgInfo{
 			Content: content,
 		}
 		l.WholeContent = content
 	}
-	
+
 	err = l.InsertOrUpdate()
 	if err != nil {
 		logger.ErrorCtx(l.Ctx, "insert or update record", "err", err)
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -131,14 +131,14 @@ func (l *LLM) InsertCharacter(ctx context.Context) {
 				logger.ErrorCtx(ctx, "parse template fail", "err", err)
 				return
 			}
-			
+
 			var buf bytes.Buffer
 			err = tmpl.Execute(&buf, l.ContentParameter)
 			if err != nil {
 				logger.ErrorCtx(ctx, "exec template fail", "err", err)
 				return
 			}
-			
+
 			logger.InfoCtx(ctx, "character", "character", buf.String())
 			l.LLMClient.GetMessage(openai.ChatMessageRoleSystem, buf.String())
 		}
@@ -151,8 +151,29 @@ func NewLLM(opts ...Option) *LLM {
 	for _, opt := range opts {
 		opt(l)
 	}
-	
-	switch utils.GetTxtType(db.GetCtxUserInfo(l.Ctx).LLMConfigRaw) {
+
+	txtType := utils.GetTxtType(db.GetCtxUserInfo(l.Ctx).LLMConfigRaw)
+
+	switch txtType {
+	case param.CmdAgent: // Agent 类型
+		// 从用户配置或环境变量获取 Agent 类型
+		agentType := getConfiguredAgentType(l.Ctx)
+		profile := getAgentProfile(agentType)
+
+		agentReq := &AgentReq{
+			AgentType:     agentType,
+			Profile:       profile,
+			Command:       getAgentCommand(agentType),
+			ExtraArgs:     getAgentExtraArgs(agentType),
+			Timeout:       getAgentTimeout(),
+			WorkDir:       getAgentWorkDir(l.UserId),
+			StreamEnabled: conf.BaseConfInfo.IsStreaming,
+			AgentMsgs:     []AgentMessage{},
+		}
+		// 加载会话ID
+		agentReq.SessionID = agentReq.loadSessionID(l.ChatId)
+		l.LLMClient = agentReq
+
 	case param.Ollama:
 		l.LLMClient = &OllamaReq{
 			ToolCall:           []godeepseek.ToolCall{},
@@ -166,7 +187,7 @@ func NewLLM(opts ...Option) *LLM {
 			CurrentToolMessage: []openai.ChatCompletionMessage{},
 		}
 	}
-	
+
 	return l
 }
 
@@ -174,14 +195,14 @@ func (l *LLM) DirectSendMsg(content string) {
 	if len([]byte(content)) > l.PerMsgLen {
 		content = string([]byte(content)[:l.PerMsgLen])
 	}
-	
+
 	if l.MessageChan != nil {
 		l.MessageChan <- &param.MsgInfo{
 			Content:  content,
 			Finished: true,
 		}
 	}
-	
+
 	if l.HTTPMsgChan != nil {
 		l.HTTPMsgChan <- content
 	}
@@ -192,7 +213,7 @@ func (l *LLM) SendMsg(msgInfoContent *param.MsgInfo, content string) *param.MsgI
 		if l.PerMsgLen == 0 {
 			l.PerMsgLen = OneMsgLen
 		}
-		
+
 		// exceed max one message length
 		if len([]byte(msgInfoContent.Content)) > l.PerMsgLen {
 			msgInfoContent.Finished = true
@@ -201,14 +222,14 @@ func (l *LLM) SendMsg(msgInfoContent *param.MsgInfo, content string) *param.MsgI
 				SendLen: NonFirstSendLen,
 			}
 		}
-		
+
 		msgInfoContent.Content += content
 		l.WholeContent += content
 		if len(msgInfoContent.Content) > msgInfoContent.SendLen {
 			l.MessageChan <- msgInfoContent
 			msgInfoContent.SendLen += NonFirstSendLen
 		}
-		
+
 		return msgInfoContent
 	} else {
 		l.WholeContent += content
@@ -235,7 +256,7 @@ func (l *LLM) InsertOrUpdate() error {
 		}, true)
 		return nil
 	}
-	
+
 	db.InsertMsgRecord(l.Ctx, l.UserId, &db.AQ{
 		Question:   l.Content,
 		Answer:     l.WholeContent,
@@ -252,7 +273,7 @@ func (l *LLM) InsertOrUpdate() error {
 		logger.ErrorCtx(l.Ctx, "update record fail", "err", err)
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -268,13 +289,13 @@ func (l *LLM) GetMessages(userId string, prompt string) {
 			}
 		}
 	}
-	
+
 	if len(l.Images) > 0 {
 		l.LLMClient.GetImageMessage(l.Images, prompt)
 	} else {
 		l.LLMClient.GetMessage(openai.ChatMessageRoleUser, prompt)
 	}
-	
+
 }
 
 type Option func(p *LLM)
@@ -375,10 +396,10 @@ func (l *LLM) ExecMcpReq(ctx context.Context, funcName string, property map[stri
 		logger.ErrorCtx(ctx, "get mcp fail", "err", err, "function", funcName, "argument", property)
 		return "", err
 	}
-	
+
 	metrics.MCPRequestCount.WithLabelValues(mc.Conf.Name, funcName).Inc()
 	startTime := time.Now()
-	
+
 	var toolsData string
 	for i := 0; i < conf.BaseConfInfo.LLMRetryTimes; i++ {
 		toolsData, err = mc.ExecTools(ctx, funcName, property)
@@ -388,16 +409,16 @@ func (l *LLM) ExecMcpReq(ctx context.Context, funcName string, property map[stri
 		}
 		break
 	}
-	
+
 	if err != nil {
 		logger.ErrorCtx(ctx, "get mcp fail", "err", err, "function", funcName, "argument", property)
 		return "", err
 	}
-	
+
 	metrics.MCPRequestDuration.WithLabelValues(mc.Conf.Name, funcName).Observe(time.Since(startTime).Seconds())
-	
+
 	logger.InfoCtx(ctx, "get mcp", "function", funcName, "argument", property, "res", toolsData)
-	
+
 	if conf.BaseConfInfo.SendMcpRes {
 		l.DirectSendMsg(i18n.GetMessage("send_mcp_info", map[string]interface{}{
 			"function_name": funcName,
@@ -405,6 +426,6 @@ func (l *LLM) ExecMcpReq(ctx context.Context, funcName string, property map[stri
 			"response":      toolsData,
 		}))
 	}
-	
+
 	return toolsData, nil
 }

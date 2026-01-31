@@ -336,8 +336,8 @@ func (web *Web) getUserName() string {
 
 func (web *Web) executeLLM() {
 	var msgChan *MsgChan
-	// 如果启用了 CMD_AGENT_ENABLED，必须使用 streaming 模式（因为 agent 需要实时流式输出）
-	if conf.BaseConfInfo.IsStreaming || conf.BaseConfInfo.CmdAgentEnabled {
+	// 如果启用了 IsStreaming，使用 streaming 模式
+	if conf.BaseConfInfo.IsStreaming {
 		// 使用带缓冲区的 channel，避免消息被丢弃（缓冲区大小 1000，足够处理流式输出）
 		msgChan = &MsgChan{
 			StrMessageChan: make(chan string, 1000),

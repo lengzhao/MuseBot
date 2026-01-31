@@ -1355,12 +1355,7 @@ func (r *RobotInfo) ExecLLM(msgContent string, msgChan *MsgChan) {
 		return
 	}
 
-	// 如果启用了 CMD_AGENT_ENABLED，直接使用 agent 命令处理
-	if conf.BaseConfInfo.CmdAgentEnabled {
-		r.execAgentCmd(content, msgChan)
-		return
-	}
-
+	// 不再需要 CMD_AGENT 的特殊判断，统一通过 LLM 架构处理
 	r.InsertRecord()
 	perMsgLen := r.Robot.getPerMsgLen()
 	if conf.AudioConfInfo.TTSType != "" {
@@ -1817,8 +1812,8 @@ func (r *RobotInfo) HandleUpdate(messageChan *MsgChan, encoding string) {
 	if conf.AudioConfInfo.TTSType != "" && encoding != "" {
 		r.sendVoice(messageChan, encoding)
 	} else {
-		// 如果启用了 CMD_AGENT_ENABLED 或 IsStreaming，使用流式输出
-		if conf.BaseConfInfo.IsStreaming || conf.BaseConfInfo.CmdAgentEnabled {
+		// 如果启用了 IsStreaming，使用流式输出
+		if conf.BaseConfInfo.IsStreaming {
 			if sr, ok := r.Robot.(StreamRobot); ok {
 				sr.sendTextStream(messageChan)
 			} else {
@@ -1873,11 +1868,6 @@ type SmartModeResult struct {
 }
 
 func (r *RobotInfo) smartMode() bool {
-	// 如果启用了 CMD_AGENT_ENABLED，跳过 smart mode 的 LLM 调用
-	if conf.BaseConfInfo.CmdAgentEnabled {
-		return true
-	}
-
 	if r.Robot.getCommand() != "" || r.Robot.getPrompt() == "" || !conf.BaseConfInfo.SmartMode {
 		return true
 	}
