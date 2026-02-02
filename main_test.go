@@ -29,12 +29,27 @@ func setup() {
 	i18n.InitI18n()
 }
 
+type mockLLMClient struct{}
+
+func (m *mockLLMClient) Send(ctx context.Context, l *llm.LLM) error {
+	l.MessageChan <- &param.MsgInfo{Content: "mock response", Finished: true}
+	return nil
+}
+func (m *mockLLMClient) GetMessage(role, msg string)               {}
+func (m *mockLLMClient) GetImageMessage(image [][]byte, msg string) {}
+func (m *mockLLMClient) GetAudioMessage(audio []byte, msg string)  {}
+func (m *mockLLMClient) AppendMessages(client llm.LLMClient)       {}
+func (m *mockLLMClient) SyncSend(ctx context.Context, l *llm.LLM) (string, error) {
+	return "mock response", nil
+}
+func (m *mockLLMClient) GetModel(l *llm.LLM) { l.Model = "mock" }
+
 func TestSendTelegramMsg(t *testing.T) {
 	messageChan := make(chan *param.MsgInfo)
-	
+
 	go func() {
 		bot := robot.CreateBot(context.Background())
-		t := robot.NewTelegramRobot(tgbotapi.Update{
+		tr := robot.NewTelegramRobot(tgbotapi.Update{
 			Message: &tgbotapi.Message{
 				MessageID: 1,
 				From: &tgbotapi.User{
@@ -45,21 +60,22 @@ func TestSendTelegramMsg(t *testing.T) {
 				},
 			},
 		}, bot)
-		t.Robot = robot.NewRobot(robot.WithRobot(t))
-		t.Robot.HandleUpdate(&robot.MsgChan{
+		tr.Robot = robot.NewRobot(robot.WithRobot(tr))
+		tr.Robot.HandleUpdate(&robot.MsgChan{
 			NormalMessageChan: messageChan,
 		}, "")
 	}()
-	
+
 	conf.BaseConfInfo.Type = param.DeepSeek
-	
+
 	ctx := context.WithValue(context.Background(), "user_info", &db.User{
 		LLMConfig:    `{"type":"deepseek"}`,
 		LLMConfigRaw: &param.LLMConfig{TxtType: param.DeepSeek},
 	})
-	
+
 	callLLM := llm.NewLLM(llm.WithChatId("1"), llm.WithMsgId("2"), llm.WithUserId("3"),
 		llm.WithMessageChan(messageChan), llm.WithContent("hi"), llm.WithContext(ctx))
+	callLLM.LLMClient = &mockLLMClient{}
 	callLLM.LLMClient.GetModel(callLLM)
 	callLLM.GetMessages("3", "hi")
 	err := callLLM.LLMClient.Send(ctx, callLLM)

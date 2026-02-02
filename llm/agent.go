@@ -47,8 +47,8 @@ var BuiltinAgentProfiles = map[AgentType]*AgentProfile{
 	AgentTypeQoder: {
 		Type:        AgentTypeQoder,
 		Command:     "qodercli",
-		DefaultArgs: []string{"-p", "-f", "json", "--yolo"},
-		StreamArgs:  []string{"-f", "stream-json"},
+		DefaultArgs: []string{"-p", "--yolo"},
+		StreamArgs:  []string{"-f=stream-json"},
 		ResumeFlag:  "-r",
 		WorkDirFlag: "-w",
 	},
@@ -221,9 +221,12 @@ func (a *AgentReq) buildArgs() []string {
 	// 1. 添加默认参数
 	args = append(args, a.Profile.DefaultArgs...)
 
-	// 2. 根据 StreamEnabled 添加流式输出参数
+	// 2. 根据 StreamEnabled 添加流式输出参数，否则使用标准 json 格式
 	if a.StreamEnabled {
 		args = append(args, a.Profile.StreamArgs...)
+	} else if a.AgentType == AgentTypeQoder {
+		// 非流式模式下，qoder 使用 json 格式
+		args = append(args, "-f=json")
 	}
 
 	// 3. 如果有会话ID，使用恢复参数
@@ -255,6 +258,9 @@ func (a *AgentReq) executeStreamCommand(ctx context.Context, cmd *exec.Cmd, l *L
 		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
+	// 关闭 stdin，防止命令等待输入
+	cmd.Stdin = nil
+
 	// 启动命令
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start agent command: %w", err)
@@ -265,10 +271,14 @@ func (a *AgentReq) executeStreamCommand(ctx context.Context, cmd *exec.Cmd, l *L
 	scanner := bufio.NewScanner(stdout)
 
 	// 读取 stderr
+	var stderrOutput strings.Builder
 	go func() {
 		stderrScanner := bufio.NewScanner(stderr)
 		for stderrScanner.Scan() {
-			logger.WarnCtx(ctx, "agent stderr", "output", stderrScanner.Text())
+			line := stderrScanner.Text()
+			logger.WarnCtx(ctx, "agent stderr", "output", line)
+			stderrOutput.WriteString(line)
+			stderrOutput.WriteString("\n")
 		}
 	}()
 
@@ -335,7 +345,12 @@ func (a *AgentReq) executeStreamCommand(ctx context.Context, cmd *exec.Cmd, l *L
 
 	// 等待命令完成
 	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("agent command failed: %w", err)
+		// 如果 stderr 有内容，包含在错误信息中
+		errMsg := fmt.Sprintf("agent command failed: %v", err)
+		if stderrContent := stderrOutput.String(); stderrContent != "" {
+			errMsg += "\nstderr: " + stderrContent
+		}
+		return fmt.Errorf("%s", errMsg)
 	}
 
 	return nil

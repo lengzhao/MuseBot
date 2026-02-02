@@ -469,35 +469,35 @@ func logConf(allowedUserIds, allowedGroupIds string) {
 		BaseConfInfo.AllowedGroupIds[groupIdStr] = true
 	}
 
-	logger.Info("CONF", "TelegramBotToken", BaseConfInfo.TelegramBotToken)
-	logger.Info("CONF", "DiscordBotToken", BaseConfInfo.DiscordBotToken)
-	logger.Info("CONF", "SlackBotToken", BaseConfInfo.SlackBotToken)
-	logger.Info("CONF", "SlackAppToken", BaseConfInfo.SlackAppToken)
+	logger.Info("CONF", "TelegramBotToken", maskString(BaseConfInfo.TelegramBotToken))
+	logger.Info("CONF", "DiscordBotToken", maskString(BaseConfInfo.DiscordBotToken))
+	logger.Info("CONF", "SlackBotToken", maskString(BaseConfInfo.SlackBotToken))
+	logger.Info("CONF", "SlackAppToken", maskString(BaseConfInfo.SlackAppToken))
 	logger.Info("CONF", "LarkAPPID", BaseConfInfo.LarkAPPID)
-	logger.Info("CONF", "LarkAppSecret", BaseConfInfo.LarkAppSecret)
+	logger.Info("CONF", "LarkAppSecret", maskString(BaseConfInfo.LarkAppSecret))
 	logger.Info("CONF", "DingClientId", BaseConfInfo.DingClientId)
-	logger.Info("CONF", "DingClientSecret", BaseConfInfo.DingClientSecret)
-	logger.Info("CONF", "ComWechatToken", BaseConfInfo.ComWechatToken)
-	logger.Info("CONF", "ComWechatEncodingAESKey", BaseConfInfo.ComWechatEncodingAESKey)
+	logger.Info("CONF", "DingClientSecret", maskString(BaseConfInfo.DingClientSecret))
+	logger.Info("CONF", "ComWechatToken", maskString(BaseConfInfo.ComWechatToken))
+	logger.Info("CONF", "ComWechatEncodingAESKey", maskString(BaseConfInfo.ComWechatEncodingAESKey))
 	logger.Info("CONF", "ComWechatCorpID", BaseConfInfo.ComWechatCorpID)
-	logger.Info("CONF", "ComWechatSecret", BaseConfInfo.ComWechatSecret)
+	logger.Info("CONF", "ComWechatSecret", maskString(BaseConfInfo.ComWechatSecret))
 	logger.Info("CONF", "ComWechatAgentID", BaseConfInfo.ComWechatAgentID)
-	logger.Info("CONF", "WechatToken", BaseConfInfo.WechatToken)
-	logger.Info("CONF", "WechatAppSecret", BaseConfInfo.WechatAppSecret)
+	logger.Info("CONF", "WechatToken", maskString(BaseConfInfo.WechatToken))
+	logger.Info("CONF", "WechatAppSecret", maskString(BaseConfInfo.WechatAppSecret))
 	logger.Info("CONF", "WechatAppID", BaseConfInfo.WechatAppID)
 	logger.Info("CONF", "WechatActive", BaseConfInfo.WechatActive)
-	logger.Info("CONF", "WechatEncodingAESKey", BaseConfInfo.WechatEncodingAESKey)
+	logger.Info("CONF", "WechatEncodingAESKey", maskString(BaseConfInfo.WechatEncodingAESKey))
 	logger.Info("CONF", "QQAppID", BaseConfInfo.QQAppID)
-	logger.Info("CONF", "QQAppSecret", BaseConfInfo.QQAppSecret)
+	logger.Info("CONF", "QQAppSecret", maskString(BaseConfInfo.QQAppSecret))
 	logger.Info("CONF", "QQOneBotHttpServer", BaseConfInfo.QQOneBotHttpServer)
-	logger.Info("CONF", "QQOneBotReceiveToken", BaseConfInfo.QQOneBotReceiveToken)
-	logger.Info("CONF", "QQOneBotSendToken", BaseConfInfo.QQOneBotSendToken)
-	logger.Info("CONF", "DeepseekToken", BaseConfInfo.DeepseekToken)
+	logger.Info("CONF", "QQOneBotReceiveToken", maskString(BaseConfInfo.QQOneBotReceiveToken))
+	logger.Info("CONF", "QQOneBotSendToken", maskString(BaseConfInfo.QQOneBotSendToken))
+	logger.Info("CONF", "DeepseekToken", maskString(BaseConfInfo.DeepseekToken))
 	logger.Info("CONF", "CustomUrl", BaseConfInfo.CustomUrl)
 	logger.Info("CONF", "Type", BaseConfInfo.Type)
-	logger.Info("CONF", "VolcAK", BaseConfInfo.VolcAK)
-	logger.Info("CONF", "VolcSK", BaseConfInfo.VolcSK)
-	logger.Info("CONF", "AliyunToken", BaseConfInfo.AliyunToken)
+	logger.Info("CONF", "VolcAK", maskString(BaseConfInfo.VolcAK))
+	logger.Info("CONF", "VolcSK", maskString(BaseConfInfo.VolcSK))
+	logger.Info("CONF", "AliyunToken", maskString(BaseConfInfo.AliyunToken))
 	logger.Info("CONF", "DBType", BaseConfInfo.DBType)
 	logger.Info("CONF", "DBConf", BaseConfInfo.DBConf)
 	logger.Info("CONF", "AllowedUserIds", BaseConfInfo.AllowedUserIds)
@@ -508,13 +508,13 @@ func logConf(allowedUserIds, allowedGroupIds string) {
 	logger.Info("CONF", "TokenPerUser", BaseConfInfo.TokenPerUser)
 	logger.Info("CONF", "MaxUserChat", BaseConfInfo.MaxUserChat)
 	logger.Info("CONF", "HTTPHost", BaseConfInfo.HTTPHost)
-	logger.Info("CONF", "OpenAIToken", BaseConfInfo.OpenAIToken)
-	logger.Info("CONF", "GeminiToken", BaseConfInfo.GeminiToken)
-	logger.Info("CONF", "OpenRouterToken", BaseConfInfo.OpenRouterToken)
-	logger.Info("CONF", "AI302Token", BaseConfInfo.AI302Token)
-	logger.Info("CONF", "ErnieAK", BaseConfInfo.ErnieAK)
-	logger.Info("CONF", "ErnieSK", BaseConfInfo.ErnieSK)
-	logger.Info("CONF", "VolToken", BaseConfInfo.VolToken)
+	logger.Info("CONF", "OpenAIToken", maskString(BaseConfInfo.OpenAIToken))
+	logger.Info("CONF", "GeminiToken", maskString(BaseConfInfo.GeminiToken))
+	logger.Info("CONF", "OpenRouterToken", maskString(BaseConfInfo.OpenRouterToken))
+	logger.Info("CONF", "AI302Token", maskString(BaseConfInfo.AI302Token))
+	logger.Info("CONF", "ErnieAK", maskString(BaseConfInfo.ErnieAK))
+	logger.Info("CONF", "ErnieSK", maskString(BaseConfInfo.ErnieSK))
+	logger.Info("CONF", "VolToken", maskString(BaseConfInfo.VolToken))
 	logger.Info("CONF", "CrtFile", BaseConfInfo.CrtFile)
 	logger.Info("CONF", "KeyFile", BaseConfInfo.KeyFile)
 	logger.Info("CONF", "CaFile", BaseConfInfo.CaFile)
@@ -533,7 +533,7 @@ func logConf(allowedUserIds, allowedGroupIds string) {
 	logger.Info("CONF", "IsStreaming", BaseConfInfo.IsStreaming)
 
 	logger.Info("AUDIO_CONF", "AudioAppID", AudioConfInfo.VolAudioAppID)
-	logger.Info("AUDIO_CONF", "AudioToken", AudioConfInfo.VolAudioToken)
+	logger.Info("AUDIO_CONF", "AudioToken", maskString(AudioConfInfo.VolAudioToken))
 	logger.Info("AUDIO_CONF", "AudioCluster", AudioConfInfo.VolAudioRecCluster)
 	logger.Info("AUDIO_CONF", "AudioVoiceType", AudioConfInfo.VolAudioVoiceType)
 	logger.Info("AUDIO_CONF", "AudioTTSCluster", AudioConfInfo.VolAudioTTSCluster)
@@ -560,7 +560,7 @@ func logConf(allowedUserIds, allowedGroupIds string) {
 	logger.Info("RAG_CONF", "WeaviateURL", RagConfInfo.WeaviateURL)
 	logger.Info("RAG_CONF", "WeaviateScheme", RagConfInfo.WeaviateScheme)
 
-	logger.Info("PHOTO_CONF", "ReqKey", PhotoConfInfo.ReqKey)
+	logger.Info("PHOTO_CONF", "ReqKey", maskString(PhotoConfInfo.ReqKey))
 	logger.Info("PHOTO_CONF", "ModelVersion", PhotoConfInfo.ModelVersion)
 	logger.Info("PHOTO_CONF", "ReqScheduleConf", PhotoConfInfo.ReqScheduleConf)
 	logger.Info("PHOTO_CONF", "Seed", PhotoConfInfo.Seed)
@@ -602,7 +602,7 @@ func logConf(allowedUserIds, allowedGroupIds string) {
 	logger.Info("REGISTER_CONF", "Type", RegisterConfInfo.Type)
 	logger.Info("REGISTER_CONF", "EtcdURLs", RegisterConfInfo.EtcdURLs)
 	logger.Info("REGISTER_CONF", "EtcdUsername", RegisterConfInfo.EtcdUsername)
-	logger.Info("REGISTER_CONF", "EtcdPassword", RegisterConfInfo.EtcdPassword)
+	logger.Info("REGISTER_CONF", "EtcdPassword", maskString(RegisterConfInfo.EtcdPassword))
 
 	logger.Info("LLM_CONF", "FrequencyPenalty", LLMConfInfo.FrequencyPenalty)
 	logger.Info("LLM_CONF", "MaxTokens", LLMConfInfo.MaxTokens)
@@ -614,6 +614,16 @@ func logConf(allowedUserIds, allowedGroupIds string) {
 	logger.Info("LLM_CONF", "TopLogProbs", LLMConfInfo.TopLogProbs)
 
 	logger.Info("TOOLS_CONF", "McpConfPath", *ToolsConfInfo.McpConfPath)
+}
+
+func maskString(s string) string {
+	if s == "" {
+		return ""
+	}
+	if len(s) <= 8 {
+		return "****"
+	}
+	return s[:4] + "****" + s[len(s)-4:]
 }
 
 func GetAbsPath(relPath string) string {

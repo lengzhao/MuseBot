@@ -49,6 +49,11 @@ lint:
 	@echo "🔍 Running static analysis with golangci-lint..."
 	@golangci-lint run ./...
 
+# Run the configuration wizard
+wizard:
+	@echo "🪄 Running configuration wizard..."
+	@go run ./wizard/
+
 # Help information
 help:
 	@echo "🛠️ Golang Makefile Usage"
@@ -59,7 +64,8 @@ help:
 	@echo "make vet       -> Run go vet (static analysis)"
 	@echo "make lint      -> Run static analysis with golangci-lint"
 	@echo "make clean     -> Clean generated files"
+	@echo "make wizard    -> Run the configuration wizard"
 	@echo "make help      -> Display help information"
 
 # Declare phony targets to avoid conflicts with file names
-.PHONY: all build run test fmt vet clean lint help
+.PHONY: all build run test fmt vet clean lint help wizard

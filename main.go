@@ -3,6 +3,7 @@
 package main
 
 import (
+	"embed"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,13 +20,18 @@ import (
 	"github.com/yincongcyincong/MuseBot/robot"
 )
 
+//go:embed static/* conf/i18n/*.json conf/mcp/*.json
+var StaticFiles embed.FS
+
 func main() {
 	logger.InitLogger()
 	conf.InitConf()
+	i18n.SetStaticFS(StaticFiles)
 	i18n.InitI18n()
 	db.InitTable()
 	conf.InitTools()
 	rag.InitRag()
+	http.SetStaticFS(StaticFiles)
 	http.InitHTTP()
 	metrics.RegisterMetrics()
 	robot.StartRobot()
